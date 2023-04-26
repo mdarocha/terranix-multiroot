@@ -1,0 +1,104 @@
+{ pkgs, tfPreHook, tfExtraPkgs, binName, terraformBin, cliData }:
+
+# TODO CI support - work when running headless, save .plan files to current directory
+# TODO check if a given root or environment exist and warn/skip when they don't
+# terraform command on a root
+pkgs.writeShellApplication {
+  name = binName;
+  runtimeInputs = [ terraformBin pkgs.jq pkgs.coreutils ] ++ tfExtraPkgs;
+  text = ''
+    tf_configs="${cliData.roots}"
+    all_configs=$(cat "${cliData.all-roots-order}")
+
+    usage()
+    {
+      echo "Usage: nix run .#tf -- [ -a | --all ] [ -e | --env ] [ -r | --root ] [ -b | --build ] <action>"
+      echo "  -a | --all: Run all roots"
+      echo "  -e | --env: Run a specific environment. If not specified, runs dev"
+      echo "  -r | --root: One of the available roots: $all_configs"
+      echo "  -b | --build: Build the config.json file - will output the file to stdout, and do nothing else"
+      echo "  actions: command to run - plan, apply, will be passed to terraform"
+      exit 2
+    }
+
+    # Parse command line args
+    ARG_RUN_ALL=false
+    ARG_ENV="dev"
+    ARG_ACTION=( "plan" )
+    ARG_ROOT=""
+    ARG_BUILD=false
+
+    parsed_arguments=$(getopt -n tf -o har:e:b -l help,all,root:env:build -- "$@")
+    valid_arguments=$?
+    if [ "$valid_arguments" != "0" ]; then
+      usage
+    fi
+
+    eval set -- "$parsed_arguments"
+    while :
+    do
+      case "$1" in
+        -h | --help) usage ;;
+        -a | --all) ARG_RUN_ALL=true ; shift ;;
+        -e | --env) ARG_ENV="$2" ; shift 2 ;;
+        -r | --root) ARG_ROOT="$2" ; shift 2 ;;
+        -b | --build) ARG_BUILD=true ; shift ;;
+        --) shift ; ARG_ACTION=( "$@" ) ; break ;;
+        *) echo "❌ Unexpected option: $1 - this should not happen." ; usage ;;
+      esac
+    done
+
+    if [[ ''${#ARG_ACTION[@]} -eq 0 ]] && [[ "$ARG_BUILD" != "true" ]]; then
+      echo "❌ Error: No action specified"
+      usage
+    fi
+
+    if [[ "$ARG_RUN_ALL" != "true" ]] && [[ -z "$ARG_ROOT" ]]; then
+      echo "❌ Error: No root specified"
+      usage
+    fi
+
+    run_tf()
+    {
+      root="$1"
+      config=$(jq -r ".\"$root\".configs.\"$ARG_ENV\"" "$tf_configs")
+
+      if [[ "$ARG_BUILD" == "true" ]]; then
+        echo "🔧 Building config for root \"$root\""
+        cp "$config" "$(pwd)/$root.tf.json"
+        return
+      fi
+
+      workdir=$(mktemp -d)
+      pushd "$workdir" > /dev/null
+      trap 'rm -rf "$workdir"' TERM EXIT
+
+      cp "$config" config.tf.json
+      ${tfPreHook}
+
+      echo "🔧 Running terraform init for root \"$root\""
+      terraform init -input=false > /dev/null
+      echo "🚀 Running terraform ''${ARG_ACTION[*]} for root \"$root\""
+      terraform "''${ARG_ACTION[@]}"
+      echo "✅ Done running terraform ''${ARG_ACTION[*]} for root \"$root\""
+
+      popd > /dev/null
+      rm -rf "$workdir" > /dev/null
+    }
+
+    if [[ "$ARG_RUN_ALL" == "true" ]]; then
+      counter=1
+      length=$(echo "$all_configs" | wc -w)
+
+      echo "🚀 Running all roots"
+      for root in $all_configs; do
+        echo "ℹ️  Root [$counter/$length] - \"$root\""
+        run_tf "$root"
+        counter=$((counter+1))
+      done
+      echo "✅ Done running all roots"
+    else
+      run_tf "$ARG_ROOT"
+    fi
+  '';
+}
