@@ -22,7 +22,7 @@ let
   };
 
   roots-map = import ./roots-map.nix {
-    inherit pkgs terranix normalizedRoots;
+    inherit pkgs terranix normalizedRoots extraArgs;
     setupModule = providers.setupModule;
     baseModule = cfg.baseModule;
   };

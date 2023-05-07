@@ -1,4 +1,4 @@
-{ pkgs, terranix, normalizedRoots, setupModule, baseModule }:
+{ pkgs, extraArgs, terranix, normalizedRoots, setupModule, baseModule }:
 
 let
   inherit (builtins) listToAttrs map;
@@ -6,7 +6,7 @@ let
   # Generates a config.tf.json that can be executed by terraform
   config = root: env: terranix.lib.terranixConfiguration {
     inherit pkgs;
-    extraArgs = { inherit env; };
+    extraArgs = extraArgs // { inherit env; };
     modules = [
       setupModule
       # TODO support baseModule that isn't a function
