@@ -80,7 +80,7 @@ pkgs.writeShellApplication {
 
       if [[ -f "$actual_workdir/$root.tfplan" ]]; then
         echo "ℹ️ $actual_workdir/$root.tfplan was found, copying it to terraform workdir"
-        echo "ℹ️ it will be available to terraform as 'tfplan'"
+        echo "  ℹ️ it will be available to terraform as 'tfplan'"
         cp "$actual_workdir/$root.tfplan" tfplan
       fi
 
@@ -98,6 +98,9 @@ pkgs.writeShellApplication {
       if [[ -f "tfplan" ]]; then
         dest="$actual_workdir/$root.tfplan"
         echo "ℹ️ tfplan file found, copying it to $dest"
+        cp "tfplan" "$dest"
+        echo "  ℹ️ also creating a json representation of the plan"
+        terraform show -json "tfplan" > "$dest.json"
       fi
 
       popd > /dev/null
