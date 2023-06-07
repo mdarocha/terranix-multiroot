@@ -1,7 +1,6 @@
 { pkgs, tfPreHook, tfExtraPkgs, binName, terraformBin, cliData }:
 
 # TODO CI support - work when running headless, save .plan files to current directory
-# TODO check if a given root or environment exist and warn/skip when they don't
 # terraform command on a root
 pkgs.writeShellApplication {
   name = binName;
@@ -62,6 +61,12 @@ pkgs.writeShellApplication {
     {
       root="$1"
       config=$(jq -r ".\"$root\".configs.\"$ARG_ENV\"" "$tf_configs")
+
+      # skip if no config
+      if [[ -z "$config" ]]; then
+        echo "⚠️  No config for root \"$root\" and env \"$ARG_ENV\""
+        return
+      fi
 
       if [[ "$ARG_BUILD" == "true" ]]; then
         echo "🔧 Building config for root \"$root\""
