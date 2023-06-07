@@ -1,6 +1,5 @@
 { pkgs, tfPreHook, tfExtraPkgs, binName, terraformBin, cliData }:
 
-# TODO CI support - work when running headless, save .plan files to current directory
 # terraform command on a root
 pkgs.writeShellApplication {
   name = binName;
@@ -74,9 +73,16 @@ pkgs.writeShellApplication {
         return
       fi
 
+      actual_workdir=$(pwd)
       workdir=$(mktemp -d)
       pushd "$workdir" > /dev/null
       trap 'rm -rf "$workdir"' TERM EXIT
+
+      if [[ -f "$actual_workdir/$root.tfplan" ]]; then
+        echo "ℹ️ $actual_workdir/$root.tfplan was found, copying it to terraform workdir"
+        echo "ℹ️ it will be available to terraform as 'tfplan'"
+        cp "$actual_workdir/$root.tfplan" tfplan
+      fi
 
       cp "$config" config.tf.json
       ${tfPreHook}
@@ -86,6 +92,13 @@ pkgs.writeShellApplication {
       echo "🚀 Running terraform ''${ARG_ACTION[*]} for root \"$root\""
       terraform "''${ARG_ACTION[@]}"
       echo "✅ Done running terraform ''${ARG_ACTION[*]} for root \"$root\""
+
+      # If a tfplan file was generated, copy it to working directory of the user
+      # This is useful for CI setups to ie. save the plan as an artifact
+      if [[ -f "tfplan" ]]; then
+        dest="$actual_workdir/$root.tfplan"
+        echo "ℹ️ tfplan file found, copying it to $dest"
+      fi
 
       popd > /dev/null
       rm -rf "$workdir" > /dev/null
