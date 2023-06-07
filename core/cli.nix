@@ -60,10 +60,10 @@ pkgs.writeShellApplication {
     run_tf()
     {
       root="$1"
-      config=$(jq -r ".\"$root\".configs.\"$ARG_ENV\"" "$tf_configs")
+      config=$(jq -r --arg root "$root" --arg env "$ARG_ENV" '.[$root].configs[$env]' "$tf_configs")
 
       # skip if no config
-      if [[ -z "$config" ]]; then
+      if [[ "$config" == 'null' ]]; then
         echo "⚠️  No config for root \"$root\" and env \"$ARG_ENV\""
         return
       fi
