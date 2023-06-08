@@ -74,14 +74,16 @@ pkgs.writeShellApplication {
       fi
 
       actual_workdir=$(pwd)
+      tfplan="$actual_workdir/$root.$ARG_ENV.tfplan"
+
       workdir=$(mktemp -d)
       pushd "$workdir" > /dev/null
       trap 'rm -rf "$workdir"' TERM EXIT
 
-      if [[ -f "$actual_workdir/$root.tfplan" ]]; then
-        echo "ℹ️ $actual_workdir/$root.tfplan was found, copying it to terraform workdir"
+      if [[ -f "$tfplan" ]]; then
+        echo "ℹ️ $tfplan was found, copying it to terraform workdir"
         echo "  ℹ️ it will be available to terraform as 'tfplan'"
-        cp "$actual_workdir/$root.tfplan" tfplan
+        cp "$tfplan" tfplan
       fi
 
       cp "$config" config.tf.json
@@ -96,11 +98,10 @@ pkgs.writeShellApplication {
       # If a tfplan file was generated, copy it to working directory of the user
       # This is useful for CI setups to ie. save the plan as an artifact
       if [[ -f "tfplan" ]]; then
-        dest="$actual_workdir/$root.tfplan"
-        echo "ℹ️ tfplan file found, copying it to $dest"
-        cp "tfplan" "$dest"
+        echo "ℹ️ tfplan file found, copying it to $tfplan"
+        cp "tfplan" "$tfplan"
         echo "  ℹ️ also creating a json representation of the plan"
-        terraform show -json "tfplan" > "$dest.json"
+        terraform show -json "tfplan" > "$tfplan.json"
       fi
 
       popd > /dev/null
