@@ -35,6 +35,7 @@ in
       null
       random
       time
+      tls
     ]));
 
   setupModule = {
