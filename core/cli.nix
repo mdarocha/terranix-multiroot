@@ -1,7 +1,5 @@
 { pkgs, tfPreHook, tfExtraPkgs, binName, terraformBin, cliData }:
 
-# TODO CI support - work when running headless, save .plan files to current directory
-# TODO check if a given root or environment exist and warn/skip when they don't
 # terraform command on a root
 pkgs.writeShellApplication {
   name = binName;
@@ -61,7 +59,13 @@ pkgs.writeShellApplication {
     run_tf()
     {
       root="$1"
-      config=$(jq -r ".\"$root\".configs.\"$ARG_ENV\"" "$tf_configs")
+      config=$(jq -r --arg root "$root" --arg env "$ARG_ENV" '.[$root].configs[$env]' "$tf_configs")
+
+      # skip if no config
+      if [[ "$config" == 'null' ]]; then
+        echo "⚠️  No config for root \"$root\" and env \"$ARG_ENV\""
+        return
+      fi
 
       if [[ "$ARG_BUILD" == "true" ]]; then
         echo "🔧 Building config for root \"$root\""
@@ -69,9 +73,18 @@ pkgs.writeShellApplication {
         return
       fi
 
+      actual_workdir=$(pwd)
+      tfplan="$actual_workdir/$root.$ARG_ENV.tfplan"
+
       workdir=$(mktemp -d)
       pushd "$workdir" > /dev/null
       trap 'rm -rf "$workdir"' TERM EXIT
+
+      if [[ -f "$tfplan" ]]; then
+        echo "ℹ️ $tfplan was found, copying it to terraform workdir"
+        echo "  ℹ️ it will be available to terraform as 'tfplan'"
+        cp "$tfplan" tfplan
+      fi
 
       cp "$config" config.tf.json
       ${tfPreHook}
@@ -81,6 +94,15 @@ pkgs.writeShellApplication {
       echo "🚀 Running terraform ''${ARG_ACTION[*]} for root \"$root\""
       terraform "''${ARG_ACTION[@]}"
       echo "✅ Done running terraform ''${ARG_ACTION[*]} for root \"$root\""
+
+      # If a tfplan file was generated, copy it to working directory of the user
+      # This is useful for CI setups to ie. save the plan as an artifact
+      if [[ -f "tfplan" ]]; then
+        echo "ℹ️ tfplan file found, copying it to $tfplan"
+        cp "tfplan" "$tfplan"
+        echo "  ℹ️ also creating a json representation of the plan"
+        terraform show -json "tfplan" > "$tfplan.json"
+      fi
 
       popd > /dev/null
       rm -rf "$workdir" > /dev/null
