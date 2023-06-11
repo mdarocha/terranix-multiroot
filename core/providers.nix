@@ -32,7 +32,7 @@ in
       external
       http
       local
-      null
+      pkgs.terraform-providers.null
       random
       time
       tls
