@@ -8,13 +8,17 @@ let
 
   defaultEnvironments = [ "dev" "prod" ];
 
-  normalizedRoots = map (name: let
-    root = getAttr name cfg.roots;
-    environments = if root ? environments then root.environments else defaultEnvironments;
-    depends = if root ? depends then root.depends else [];
-  in root // {
-    inherit name environments depends;
-  }) (attrNames cfg.roots);
+  normalizedRoots = map
+    (name:
+      let
+        root = getAttr name cfg.roots;
+        environments = if root ? environments then root.environments else defaultEnvironments;
+        depends = if root ? depends then root.depends else [ ];
+      in
+      root // {
+        inherit name environments depends;
+      })
+    (attrNames cfg.roots);
 
   providers = import ./providers.nix {
     inherit pkgs useOpenTofu;
@@ -33,7 +37,7 @@ let
 in
 {
   cli = import ./cli.nix {
-    inherit pkgs tfPreHook tfExtraPkgs binName ;
+    inherit pkgs tfPreHook tfExtraPkgs binName;
     terraformBin = providers.terraformBin;
     cliData = {
       roots = (pkgs.writeText "tf-configs.json" (builtins.toJSON roots-map));

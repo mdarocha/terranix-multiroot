@@ -17,12 +17,12 @@ let
         '';
       };
       config = mkOption {
-        default = {};
+        default = { };
         type = anything;
         example = {
-          features = {};
+          features = { };
           subscription_id = "<subscription_id>";
-          tenant_id       = "<tentant_id>";
+          tenant_id = "<tentant_id>";
         };
         description = ''
           The terraform configuration of the given provider.
@@ -35,15 +35,15 @@ in
 {
   options = {
     providers = mkOption {
-      default = {};
+      default = { };
       type = attrsOf (submodule providerOpts);
       example = {
         azurerm = {
           pkg = pkgs.terraform-plugins.azurerm;
           config = {
-            features = {};
+            features = { };
             subscription_id = "<subscription_id>";
-            tenant_id       = "<tentant_id>";
+            tenant_id = "<tentant_id>";
           };
         };
       };
@@ -56,7 +56,7 @@ in
     };
 
     baseModule = mkOption {
-      default = { ... }: {};
+      default = { ... }: { };
       type = functionTo anything;
       description = ''
         Configure a base module that will be included in every root module.

@@ -19,15 +19,19 @@ let
 
   # Generate a map of roots to their generated configs that can be executed
   # by terraform
-  configs = listToAttrs (map (root: {
-    name = root.name;
-    value = {
-      depends = root.depends;
-      configs = listToAttrs (map (env: {
-        name = env;
-        value = config root env;
-      }) root.environments);
-    };
-  }) normalizedRoots);
+  configs = listToAttrs (map
+    (root: {
+      name = root.name;
+      value = {
+        depends = root.depends;
+        configs = listToAttrs (map
+          (env: {
+            name = env;
+            value = config root env;
+          })
+          root.environments);
+      };
+    })
+    normalizedRoots);
 in
 configs

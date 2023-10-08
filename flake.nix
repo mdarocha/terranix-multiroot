@@ -15,10 +15,10 @@
       lib.mkCli =
         { system ? ""
         , pkgs ? builtins.getAttr system nixpkgs.legacyPackages
-        , modules ? [] # used to define your roots
-        , extraArgs ? {}
+        , modules ? [ ] # used to define your roots
+        , extraArgs ? { }
         , tfPreHook ? "" # hook to run before terraform is called
-        , tfExtraPkgs ? [] # additional binaries to make available in PATH to the terraform binary
+        , tfExtraPkgs ? [ ] # additional binaries to make available in PATH to the terraform binary
         , binName ? "tf"
         , useOpenTofu ? false # set to true to use OpenTofu instead of Terraform
         }:

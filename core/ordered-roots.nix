@@ -19,7 +19,8 @@ let
 
   tsort-input = pkgs.writeText "tsort-input" (concatStringsSep "\n" allRootsDepends);
 in
-pkgs.runCommandLocal "tsort-roots" {
+pkgs.runCommandLocal "tsort-roots"
+{
   PATH = pkgs.lib.makeBinPath [ pkgs.coreutils ];
 } ''
   tsort ${tsort-input} | tac | tr '\n' ' '> $out
