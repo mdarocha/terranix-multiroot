@@ -38,7 +38,7 @@ let
       in
       {
         inherit name;
-        value = if hasAttr "config" info then info.config else {};
+        value = if hasAttr "config" info then info.config else { };
       })
     names);
 in
