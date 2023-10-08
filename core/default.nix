@@ -37,7 +37,7 @@ let
 in
 {
   cli = import ./cli.nix {
-    inherit pkgs tfPreHook tfExtraPkgs binName;
+    inherit pkgs tfPreHook tfExtraPkgs binName useOpenTofu;
     terraformBin = providers.terraformBin;
     cliData = {
       roots = (pkgs.writeText "tf-configs.json" (builtins.toJSON roots-map));

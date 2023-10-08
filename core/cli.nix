@@ -1,6 +1,9 @@
-{ pkgs, tfPreHook, tfExtraPkgs, binName, terraformBin, cliData }:
+{ pkgs, tfPreHook, tfExtraPkgs, binName, terraformBin, cliData, useOpenTofu }:
 
 # terraform command on a root
+let
+  cmd = if useOpenTofu then "tofu" else "terraform";
+in
 pkgs.writeShellApplication {
   name = binName;
   runtimeInputs = [ terraformBin pkgs.jq pkgs.coreutils ] ++ tfExtraPkgs;
@@ -15,7 +18,7 @@ pkgs.writeShellApplication {
       echo "  -e | --env: Run a specific environment. If not specified, runs dev"
       echo "  -r | --root: One of the available roots: $all_configs"
       echo "  -b | --build: Build the config.json file - will output the file to stdout, and do nothing else"
-      echo "  actions: command to run - plan, apply, will be passed to terraform"
+      echo "  actions: command to run - plan, apply, will be passed to ${cmd}"
       exit 2
     }
 
@@ -81,19 +84,19 @@ pkgs.writeShellApplication {
       trap 'rm -rf "$workdir"' TERM EXIT
 
       if [[ -f "$tfplan" ]]; then
-        echo "ℹ️ $tfplan was found, copying it to terraform workdir"
-        echo "  ℹ️ it will be available to terraform as 'tfplan'"
+        echo "ℹ️ $tfplan was found, copying it to ${cmd} workdir"
+        echo "  ℹ️ it will be available to ${cmd} as 'tfplan'"
         cp "$tfplan" tfplan
       fi
 
       cp "$config" config.tf.json
       ${tfPreHook}
 
-      echo "🔧 Running terraform init for root \"$root\""
-      terraform init -input=false > /dev/null
-      echo "🚀 Running terraform ''${ARG_ACTION[*]} for root \"$root\""
-      terraform "''${ARG_ACTION[@]}"
-      echo "✅ Done running terraform ''${ARG_ACTION[*]} for root \"$root\""
+      echo "🔧 Running ${cmd} init for root \"$root\""
+      ${cmd} init -input=false > /dev/null
+      echo "🚀 Running ${cmd} ''${ARG_ACTION[*]} for root \"$root\""
+      ${cmd} "''${ARG_ACTION[@]}"
+      echo "✅ Done running ${cmd} ''${ARG_ACTION[*]} for root \"$root\""
 
       # If a tfplan file was generated, copy it to working directory of the user
       # This is useful for CI setups to ie. save the plan as an artifact
@@ -101,7 +104,7 @@ pkgs.writeShellApplication {
         echo "ℹ️ tfplan file found, copying it to $tfplan"
         cp "tfplan" "$tfplan"
         echo "  ℹ️ also creating a json representation of the plan"
-        terraform show -json "tfplan" > "$tfplan.json"
+        ${cmd} show -json "tfplan" > "$tfplan.json"
       fi
 
       popd > /dev/null
