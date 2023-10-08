@@ -20,10 +20,11 @@
         , tfPreHook ? "" # hook to run before terraform is called
         , tfExtraPkgs ? [] # additional binaries to make available in PATH to the terraform binary
         , binName ? "tf"
+        , useOpenTofu ? false # set to true to use OpenTofu instead of Terraform
         }:
         let
           terranixMultiroot = import ./core/default.nix {
-            inherit pkgs modules extraArgs tfPreHook tfExtraPkgs binName;
+            inherit pkgs modules extraArgs tfPreHook tfExtraPkgs binName useOpenTofu;
             inherit terranix;
           };
         in

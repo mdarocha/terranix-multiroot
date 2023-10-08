@@ -1,4 +1,4 @@
-{ pkgs, modules, extraArgs, tfPreHook, tfExtraPkgs, binName, terranix }:
+{ pkgs, modules, extraArgs, tfPreHook, tfExtraPkgs, binName, terranix, useOpenTofu }:
 
 let
   inherit (builtins) map getAttr attrNames;
@@ -17,7 +17,7 @@ let
   }) (attrNames cfg.roots);
 
   providers = import ./providers.nix {
-    inherit pkgs;
+    inherit pkgs useOpenTofu;
     providers = cfg.providers;
   };
 
@@ -33,7 +33,7 @@ let
 in
 {
   cli = import ./cli.nix {
-    inherit pkgs tfPreHook tfExtraPkgs binName;
+    inherit pkgs tfPreHook tfExtraPkgs binName ;
     terraformBin = providers.terraformBin;
     cliData = {
       roots = (pkgs.writeText "tf-configs.json" (builtins.toJSON roots-map));

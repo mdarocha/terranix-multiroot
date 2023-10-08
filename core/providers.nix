@@ -1,4 +1,4 @@
-{ pkgs, providers }:
+{ pkgs, providers, useOpenTofu }:
 
 # Read providers config, and setup terraformBin
 # and a module with terraform configuration for providers;
@@ -24,7 +24,7 @@ let
   }) names);
 in
 {
-  terraformBin = pkgs.terraform.withPlugins
+  terraformBin = (if useOpenTofu then pkgs.opentofu else pkgs.terraform).withPlugins
     (_: (map (name: (getAttr name providers).pkg) names)
     # Provide logical and base providers by default
     ++ (with pkgs.terraform-providers; [
