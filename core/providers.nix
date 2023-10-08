@@ -3,7 +3,7 @@
 # Read providers config, and setup terraformBin
 # and a module with terraform configuration for providers;
 let
-  inherit (builtins) attrNames getAttr map listToAttrs;
+  inherit (builtins) attrNames hasAttr map listToAttrs;
 
   # Provide logical and base providers by default
   defaultProviders = with pkgs.terraform-providers; {
@@ -33,9 +33,12 @@ let
 
   providers-configs = listToAttrs (map
     (name:
+      let
+        info = providers'.${name};
+      in
       {
         inherit name;
-        value = providers'.${name}.config;
+        value = if hasAttr "config" info then info.config else {};
       })
     names);
 in
