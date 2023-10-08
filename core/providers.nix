@@ -5,29 +5,37 @@
 let
   inherit (builtins) attrNames getAttr map listToAttrs;
 
-  names = attrNames providers;
+  # Provide logical and base providers by default
+  defaultProviders = (with pkgs.terraform-providers; {
+    archive.pkg = archive;
+    external.pkg = external;
+    http.pkg = http;
+    local.pkg = local;
+    "null".pkg = pkgs.terraform-providers.null;
+    random.pkg = random;
+    time.pkg = time;
+    tls.pkg = tls;
+  });
+
+  providers' = defaultProviders // providers;
+
+  names = attrNames providers';
 
   # Definiting required_providers explictly makes sure
   # terraform can find every module.
   required-providers = listToAttrs (map
     (name:
-      let
-        pkg = (getAttr name providers).pkg;
-      in
       {
         inherit name;
-        value.source = pkg.passthru.provider-source-address;
+        value.source = providers'.${name}.pkg.passthru.provider-source-address;
       })
     names);
 
   providers-configs = listToAttrs (map
     (name:
-      let
-        provider = getAttr name providers;
-      in
       {
         inherit name;
-        value = provider.config;
+        value = providers'.${name}.config;
       })
     names);
 in
