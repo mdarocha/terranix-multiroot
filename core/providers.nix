@@ -6,7 +6,7 @@ let
   inherit (builtins) attrNames getAttr map listToAttrs;
 
   # Provide logical and base providers by default
-  defaultProviders = (with pkgs.terraform-providers; {
+  defaultProviders = with pkgs.terraform-providers; {
     archive.pkg = archive;
     external.pkg = external;
     http.pkg = http;
@@ -15,7 +15,7 @@ let
     random.pkg = random;
     time.pkg = time;
     tls.pkg = tls;
-  });
+  };
 
   providers' = defaultProviders // providers;
 
@@ -41,18 +41,7 @@ let
 in
 {
   terraformBin = (if useOpenTofu then pkgs.opentofu else pkgs.terraform).withPlugins
-    (_: (map (name: (getAttr name providers).pkg) names)
-      # Provide logical and base providers by default
-      ++ (with pkgs.terraform-providers; [
-      archive
-      external
-      http
-      local
-      pkgs.terraform-providers.null
-      random
-      time
-      tls
-    ]));
+    (_: (map (name: providers'.${name}.pkg) names));
 
   setupModule = {
     terraform.required_providers = required-providers;
