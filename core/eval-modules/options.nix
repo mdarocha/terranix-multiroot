@@ -4,13 +4,13 @@ with lib;
 with lib.types;
 
 # TODO better types
-# TODO support description for roots (and display them in the cli
+# TODO support description for roots (and display them in the cli)
 let
   providerOpts = { ... }: {
     options = {
       pkg = mkOption {
         type = package;
-        example = literalExample "pkgs.terraform-plugins.azurerm";
+        example = literalExpression "pkgs.terraform-plugins.azurerm";
         description = ''
           The package of the provider. Should be a terraform provider plugin from
           the nixpkgs' terraform-providers namespace.
@@ -37,7 +37,8 @@ in
     providers = mkOption {
       default = { };
       type = attrsOf (submodule providerOpts);
-      example = {
+      example = literalExpression ''
+      {
         azurerm = {
           pkg = pkgs.terraform-plugins.azurerm;
           config = {
@@ -46,7 +47,7 @@ in
             tenant_id = "<tentant_id>";
           };
         };
-      };
+      }'';
       description = ''
         Define terraform providers along with their configuration.
         These providers will be available to every root module.
@@ -70,6 +71,7 @@ in
     };
 
     roots = mkOption {
+      type = anything;
       description = ''
         Configure terraform root modules.
         Each root module has a separate state, allowing you to split

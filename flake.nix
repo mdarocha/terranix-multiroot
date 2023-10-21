@@ -9,7 +9,7 @@
     };
   };
 
-  outputs = { nixpkgs, terranix, ... }:
+  outputs = { self, nixpkgs, terranix, ... }:
     {
       # creates a cli app that runs the defined roots
       lib.mkCli =
@@ -31,5 +31,33 @@
         terranixMultiroot.cli;
 
       formatter.x86_64-linux = nixpkgs.legacyPackages.x86_64-linux.nixpkgs-fmt;
+
+      packages.x86_64-linux.docs =
+        let
+          pkgs = nixpkgs.legacyPackages.x86_64-linux;
+          lib = pkgs.lib;
+          inherit (lib.lists) map;
+          inherit (lib.strings) removePrefix;
+
+          revision = "main";
+        in
+        (pkgs.nixosOptionsDoc {
+          options = (lib.modules.evalModules {
+            modules = [ ./core/eval-modules/options.nix ];
+          }).options // { "_module" = { }; };
+          inherit revision;
+          transformOptions = option: option // {
+            declarations = map
+              (path:
+                let
+                  path' = removePrefix "${self}/" path;
+                in
+                {
+                  name = "./${path'}";
+                  url = "https://github.com/mdarocha/terranix-multiroot/tree/${revision}/${path'}";
+                })
+              option.declarations;
+          };
+        }).optionsCommonMark;
     };
 }
