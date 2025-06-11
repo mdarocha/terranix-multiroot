@@ -3,7 +3,7 @@
 # Read providers config, and setup terraformBin
 # and a module with terraform configuration for providers;
 let
-  inherit (builtins) attrNames hasAttr map listToAttrs;
+  inherit (builtins) attrNames hasAttr map listToAttrs replaceStrings;
 
   # Provide logical and base providers by default
   defaultProviders = with pkgs.terraform-providers; {
@@ -27,7 +27,12 @@ let
     (name:
       {
         inherit name;
-        value.source = providers'.${name}.pkg.passthru.provider-source-address;
+        value.source = let
+            address = providers'.${name}.pkg.passthru.provider-source-address;
+        in
+        if useOpenTofu
+        then replaceStrings [ "registry.terraform.io/" ] [""] address
+        else address;
       })
     names);
 
